@@ -85,14 +85,10 @@ public class Printer {
             logString(sb, numSpaces, obj.getClass().getName() + " { " + obj + " } \n");
         }
         else {
-            logString(sb, numSpaces, obj.getClass().getName() + "  [ \n");
-            final Field[] fieldsDeclared = obj.getClass().getDeclaredFields();
-            final List<Field> fieldList = Arrays.asList(fieldsDeclared);
-            Collections.sort(fieldList, new FieldComparator());
-
+        	logString(sb, numSpaces, obj.getClass().getName() + "  [ \n");
+            final List<Field> fieldList = getAllFields(obj);
             for (int i = 0, a = fieldList.size(); i < a; i++) {
                 final Field field = fieldList.get(i);
-
                 final String name = field.getName();
                 if (!("$VALUES".equalsIgnoreCase(name))) {
                     try {
@@ -111,6 +107,37 @@ public class Printer {
         }
     }
 
+    
+    private List<Field> getAllFields(final Object obj) {
+        final List<Field> result = new ArrayList<Field>();
+        result.addAll(Arrays.asList(obj.getClass().getDeclaredFields()));
+        addParentFields(obj, obj.getClass().getSuperclass(), result);
+        Collections.sort(result, new FieldComparator());
+        return result;
+    }
+
+    private void addParentFields(final Object obj, final Class superclass, final List<Field> result) {
+        if (superclass.getName().startsWith("java.")) {
+            return;
+        }
+
+        final Field[] parentField = superclass.getDeclaredFields();
+        for (int i = 0, a = parentField.length; i < a; i++) {
+            final String fieldName = parentField[i].getName();
+            boolean found = false;
+            final Iterator<Field> it = result.iterator();
+            while (it.hasNext()) {
+                if (it.next().getName().equals(fieldName)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                result.add(parentField[i]);
+            }
+        }
+        addParentFields(obj, superclass.getSuperclass(), result);
+    }
 
     private List getSortedList(final List lista) {
         if ((lista == null) || lista.isEmpty()) {
